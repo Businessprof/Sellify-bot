@@ -1,6 +1,7 @@
 from decimal import Decimal
 from aiogram import F, Router
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.handlers.start import show_dashboard
@@ -8,6 +9,7 @@ from app.bot.keyboards.common import get_back_keyboard
 from app.core.config import settings
 from app.core.security import generate_api_key
 from app.database.models.audit import ApiKey
+from app.database.models.product import ProductVariant
 from app.database.models.user import User
 from app.database.repositories.product_repo import ProductRepository
 from app.database.repositories.user_repo import UserRepository
@@ -32,18 +34,31 @@ async def handle_back_to_menu(callback: CallbackQuery, session: AsyncSession, db
 async def handle_nav_shop(callback: CallbackQuery, session: AsyncSession):
     await callback.answer()
     product_repo = ProductRepository(session)
-    categories = await product_repo.get_active_categories()
+    variants = (await session.execute(
+        select(ProductVariant)
+        .where(ProductVariant.is_active == True)  # noqa: E712
+        .order_by(ProductVariant.display_order, ProductVariant.id)
+    )).scalars().all()
 
     buttons = []
-    for cat in categories:
-        buttons.append([InlineKeyboardButton(text=f"{cat.icon} {cat.name}", callback_data=f"cat_{cat.id}")])
+    in_stock_count = 0
+    total_count = len(variants)
 
-    buttons.append([InlineKeyboardButton(text="⬅️ Back to Menu", callback_data="nav_main_menu")])
+    for v in variants:
+        stock = await product_repo.get_variant_stock_count(v.id)
+        if stock > 0:
+            in_stock_count += 1
+        label = f"{v.product.name} | ${v.price:.2f} | 📦 {stock}"
+        buttons.append([InlineKeyboardButton(text=label, callback_data=f"buy_variant_{v.id}")])
+
+    buttons.append([InlineKeyboardButton(text="🔄 Refresh", callback_data="nav_shop")])
+    buttons.append([InlineKeyboardButton(text="🏠 Back to Home", callback_data="nav_main_menu")])
     kb = InlineKeyboardMarkup(inline_keyboard=buttons)
 
     text = (
-        "🛍️ <b>Digital Products Catalog</b>\n\n"
-        "Select a category below to browse available software, streaming services, accounts, and subscriptions:"
+        f"🟢 <b>{in_stock_count} of {total_count} in stock</b>\n"
+        "📁 categories · 🎁 bundles\n"
+        "<i>Tap a product below to view details.</i>"
     )
     if callback.message:
         await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
@@ -53,33 +68,33 @@ async def handle_nav_shop(callback: CallbackQuery, session: AsyncSession):
 async def handle_nav_wallet(callback: CallbackQuery, session: AsyncSession, db_user: User):
     await callback.answer()
     wallet_repo = WalletRepository(session)
+    user_repo = UserRepository(session)
+
     wallet = await wallet_repo.get_by_user_id(db_user.id)
     balance = wallet.balance if wallet else Decimal("0.00")
+    total_spent = await user_repo.get_total_spent(db_user.id)
     curr = settings.CURRENCY_SYMBOL
+    tier_badge = db_user.membership_tier.badge
 
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
-            [
-                InlineKeyboardButton(text="➕ Add Funds", callback_data="wallet_add_funds"),
-                InlineKeyboardButton(text="📜 Transactions", callback_data="wallet_history"),
-            ],
-            [
-                InlineKeyboardButton(text="🎁 Redeem Code", callback_data="wallet_redeem"),
-            ],
-            [
-                InlineKeyboardButton(text="⬅️ Back", callback_data="nav_main_menu"),
-            ],
+            [InlineKeyboardButton(text="🔶 Binance Pay", callback_data="pay_binance")],
+            [InlineKeyboardButton(text="₮ USDT BEP-20 · BSC", callback_data="pay_usdt")],
+            [InlineKeyboardButton(text="🎉 Redeem Code", callback_data="wallet_redeem")],
+            [InlineKeyboardButton(text="📒 Transaction History", callback_data="wallet_history")],
+            [InlineKeyboardButton(text="Back", callback_data="nav_main_menu")],
         ]
     )
 
     text = (
-        "💳 <b>Your Wallet</b>\n"
+        "🆆 🅰 🅻 🅻 🅴 🆃\n\n"
+        "Your Balance and Spending Stats are:\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
-        f"💰 <b>Current Balance:</b> <code>{curr}{balance:.2f}</code>\n"
-        f"📥 <b>Total Deposited:</b> <code>{curr}{wallet.total_deposited:.2f}</code>\n"
-        f"📤 <b>Total Spent:</b> <code>{curr}{wallet.total_spent:.2f}</code>\n"
+        f"💰 <b>Balance:</b> {curr}{balance:.2f}\n"
+        f"💎 <b>Total Spent:</b> {curr}{total_spent:.2f}\n"
+        f"👑 <b>Membership:</b> {tier_badge}\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
-        "Add funds instantly or redeem voucher codes."
+        "<i>Choose a payment method below to add funds to your wallet.</i>"
     )
     if callback.message:
         await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
@@ -114,28 +129,43 @@ async def handle_nav_profile(callback: CallbackQuery, session: AsyncSession, db_
     balance = user_with_wallet.wallet.balance if user_with_wallet and user_with_wallet.wallet else Decimal("0.00")
     total_spent = await user_repo.get_total_spent(db_user.id)
     ref_count, ref_earnings = await referral_service.get_referral_stats(db_user.id)
+    ref_link = referral_service.generate_referral_link(db_user.referral_code)
     curr = settings.CURRENCY_SYMBOL
+    tier_badge = db_user.membership_tier.badge
 
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="📦 My Orders", callback_data="profile_orders")],
-            [InlineKeyboardButton(text="🎯 Referrals", callback_data="nav_referral_store")],
-            [InlineKeyboardButton(text="⬅️ Back", callback_data="nav_main_menu")],
+            [
+                InlineKeyboardButton(text="👀 Orders", callback_data="profile_orders"),
+                InlineKeyboardButton(text="🔊 Refer & Earn", callback_data="nav_referral_store"),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="📩 Share Referral Link",
+                    url=f"https://t.me/share/url?url={ref_link}&text=Join%20Qamify%20for%20quality%20digital%20products!"
+                )
+            ],
+            [InlineKeyboardButton(text="🏆 View Tiers", callback_data="view_membership_tiers")],
+            [InlineKeyboardButton(text="« Back", callback_data="nav_main_menu")],
         ]
     )
 
+    created_date_str = db_user.created_at.strftime("%m/%d/%Y") if db_user.created_at else "Today"
+
     text = (
-        "🙂 <b>User Profile</b>\n"
+        "🅿 🆁 🅾 🅵 🅸 🅻 🅴\n\n"
+        "Your Profile Has following Stats\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
-        f"👤 <b>Name:</b> {db_user.first_name}\n"
-        f"🏷️ <b>Username:</b> @{db_user.username or 'None'}\n"
-        f"🆔 <b>Telegram ID:</b> <code>{db_user.id}</code>\n"
-        f"👑 <b>Tier:</b> {db_user.membership_tier.badge}\n"
-        f"💰 <b>Balance:</b> {curr}{balance:.2f}\n"
-        f"💎 <b>Total Spent:</b> {curr}{total_spent:.2f}\n"
-        f"🤝 <b>Referrals:</b> {ref_count}\n"
-        f"💸 <b>Referral Earnings:</b> {curr}{ref_earnings:.2f}\n"
-        "━━━━━━━━━━━━━━━━━━━━"
+        f"🏷️ Username: @{db_user.username or 'None'}\n"
+        f"🆔 UserID: <code>{db_user.id}</code>\n"
+        f"👑 Membership: {tier_badge}\n"
+        f"💰 Balance: {curr}{balance:.2f}\n"
+        f"💎 Total Spent: {curr}{total_spent:.2f}\n"
+        f"🤝 Refferals: {ref_count}\n"
+        f"💸 Refferal Earning: {curr}{ref_earnings:.2f}\n"
+        f"🔗 Refferal Link: {ref_link}\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        f"📆 <i>Member Since {created_date_str}</i>"
     )
     if callback.message:
         await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
