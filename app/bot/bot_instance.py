@@ -29,5 +29,7 @@ def create_dispatcher() -> Dispatcher:
     # Register routers
     dp.include_router(start_router)
     dp.include_router(menu_router)
+    dp.include_router(shop_router)
+    dp.include_router(wallet_payment_router)
 
     return dp

@@ -44,6 +44,9 @@ class OrderItem(Base, TimestampMixin):
     order_id: Mapped[str] = mapped_column(String(36), ForeignKey("orders.id", ondelete="CASCADE"), index=True, nullable=False)
     product_id: Mapped[int] = mapped_column(Integer, ForeignKey("products.id"), index=True, nullable=False)
     variant_id: Mapped[int] = mapped_column(Integer, ForeignKey("product_variants.id"), index=True, nullable=False)
+    inventory_item_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("inventory_items.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     quantity: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
