@@ -78,26 +78,15 @@ async def handle_verify_membership(callback: CallbackQuery, bot: Bot, session: A
     is_verified, missing_channels = await membership_service.verify_user_membership(bot, callback.from_user.id)
 
     if not is_verified:
-        # Admin diagnostic bypass
-        if callback.from_user.id in settings.ADMIN_TELEGRAM_IDS:
-            admin_reasons = [ch.get("detail", ch.get("title")) for ch in missing_channels]
-            notice = "⚠️ Admin Notice:\n" + "\n".join(f"• {r}" for r in admin_reasons) + "\n\n(Bypassing gate for Administrator)"
-            await callback.answer(notice[:200], show_alert=True)
-            if callback.message:
-                try:
-                    await callback.message.delete()
-                except Exception:
-                    pass
-                await show_dashboard(callback.message, session, db_user)
-            return
-
         setup_errors = [ch.get("detail") for ch in missing_channels if ch.get("reason") in ("bot_not_admin", "chat_not_found")]
         if setup_errors:
-            alert = "⚠️ Bot Setup Notice:\n" + "\n".join(f"• {e}" for e in setup_errors)
+            alert = "⚠️ Bot Setup Required:\n" + "\n".join(f"• {e}" for e in setup_errors) + "\n\nPlease add @digiproductsllr_bot as an Administrator!"
             await callback.answer(alert[:200], show_alert=True)
             return
 
-        await callback.answer("❌ You have not joined all required channels/groups yet!", show_alert=True)
+        missing_titles = [ch.get("title") for ch in missing_channels]
+        alert = "❌ You have not joined all required channels/groups yet:\n• " + "\n• ".join(missing_titles)
+        await callback.answer(alert[:200], show_alert=True)
         return
 
     await callback.answer("✅ Verified — welcome!", show_alert=True)

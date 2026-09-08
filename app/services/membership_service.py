@@ -75,7 +75,7 @@ class MembershipService:
                     f"Could not verify membership for user {user_id} in {ch['id']}: {e}."
                 )
                 ch_info = dict(ch)
-                if "member list is inaccessible" in err_str:
+                if "member list is inaccessible" in err_str or "not a member" in err_str.lower() or "forbidden" in err_str.lower():
                     ch_info["reason"] = "bot_not_admin"
                     ch_info["detail"] = f"Bot is not an Admin in '{ch['title']}'"
                 elif "chat not found" in err_str:
