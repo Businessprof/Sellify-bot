@@ -42,7 +42,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Mount Web Admin Panel
+import os
+from fastapi.staticfiles import StaticFiles
+
+# Mount Static Files & Web Admin Panel
+static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "web", "static"))
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
 app.include_router(admin_web_router)
 
 

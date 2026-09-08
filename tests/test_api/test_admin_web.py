@@ -15,7 +15,7 @@ async def test_web_admin_dashboard(db_session):
         res = await client.get("/admin")
         assert res.status_code == 200
         assert "Store Analytics" in res.text
-        assert "QAMIFY" in res.text
+        assert "SELLIFY" in res.text
 
 
 @pytest.mark.asyncio
