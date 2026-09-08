@@ -1,1 +1,1 @@
-"""Qamify Telegram Bot Application Package."""
+"""Sellify Telegram Bot Application Package."""

@@ -142,7 +142,7 @@ async def handle_nav_profile(callback: CallbackQuery, session: AsyncSession, db_
             [
                 InlineKeyboardButton(
                     text="📩 Share Referral Link",
-                    url=f"https://t.me/share/url?url={ref_link}&text=Join%20Qamify%20for%20quality%20digital%20products!"
+                    url=f"https://t.me/share/url?url={ref_link}&text=Join%20Sellify%20for%20quality%20digital%20products!"
                 )
             ],
             [InlineKeyboardButton(text="🏆 View Tiers", callback_data="view_membership_tiers")],

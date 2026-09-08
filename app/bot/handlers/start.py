@@ -27,7 +27,7 @@ def format_welcome_message(
     curr = settings.CURRENCY_SYMBOL
 
     return (
-        "🆀 🅰 🅼 🅸 🅵 🆈\n\n"
+        "🆂 🅴 🅻 🅻 🅸 🅵 🆈\n\n"
         f"👋 Welcome back, <b>{user.first_name}</b>!\n"
         "<i>Quality products at cheapest rates</i>\n"
         "━━━━━━━━━━━━━━━━━━━━\n"

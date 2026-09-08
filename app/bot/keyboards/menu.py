@@ -18,7 +18,7 @@ def get_membership_gate_keyboard(channels: list[dict]) -> InlineKeyboardMarkup:
 
 def get_main_menu_keyboard() -> InlineKeyboardMarkup:
     """
-    Reproduces the exact Qamify high-conversion inline keyboard grid:
+    Reproduces the exact Sellify high-conversion inline keyboard grid:
     Row 1: [🛍️ SHOP]
     Row 2: [💳 Wallet] [🎁 Freebies] [🙂 Profile]
     Row 3: [🎯 Referral Store]

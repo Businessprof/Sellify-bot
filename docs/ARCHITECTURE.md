@@ -1,8 +1,8 @@
-# Architecture & Specification: Qamify-Style Telegram Digital Products Store Bot
+# Architecture & Specification: Sellify Telegram Digital Products Store Bot
 
 ## 1. Executive Summary & System Overview
 
-This document specifies the end-to-end architecture, database schema, service layer, security model, and implementation roadmap for a production-grade Telegram digital products and services e-commerce bot modeled after the high-conversion Qamify flow.
+This document specifies the end-to-end architecture, database schema, service layer, security model, and implementation roadmap for a production-grade Telegram digital products and services e-commerce bot modeled after the high-conversion Sellify flow.
 
 The system is designed to provide:
 - **Telegram Bot Client** powered by `aiogram 3.x`, featuring interactive inline keyboards, mandatory channel/group membership gating, dynamic UI rendering, and sub-second response times.
@@ -60,7 +60,7 @@ The system is designed to provide:
 ## 2. Directory Structure
 
 ```
-qamify-bot/
+sellify-bot/
 ├── app/
 │   ├── __init__.py
 │   ├── main.py                          # Application entrypoint (FastAPI + Bot runner)

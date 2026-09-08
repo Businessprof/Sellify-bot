@@ -35,7 +35,7 @@ async def show_admin_hub(target: Message, session: AsyncSession):
     curr = settings.CURRENCY_SYMBOL
 
     text = (
-        "🛠️ <b>Qamify Administrator Hub</b>\n"
+        "🛠️ <b>Sellify Administrator Hub</b>\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
         f"👥 <b>Total Users:</b> <code>{total_users}</code>\n"
         f"📦 <b>Available Stock:</b> <code>{total_stock} items</code>\n"

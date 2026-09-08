@@ -184,14 +184,14 @@ async def seed_data():
         if not res.scalars().first():
             logger.info("Seeding membership channels...")
             channel = MembershipChannel(
-                title="Qamify Announcements",
+                title="Sellify Announcements",
                 channel_id=settings.MANDATORY_CHANNEL_ID,
                 invite_link=settings.MANDATORY_CHANNEL_LINK,
                 is_mandatory=True,
                 is_active=True,
             )
             group = MembershipChannel(
-                title="Qamify Community Group",
+                title="Sellify Community Group",
                 channel_id=settings.MANDATORY_GROUP_ID,
                 invite_link=settings.MANDATORY_GROUP_LINK,
                 is_mandatory=True,

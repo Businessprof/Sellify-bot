@@ -4,7 +4,7 @@ import sys
 LOG_FORMAT = "%(asctime)s | %(levelname)-8s | %(name)s:%(funcName)s:%(lineno)d - %(message)s"
 
 
-def setup_logger(name: str = "qamify", level: int = logging.INFO) -> logging.Logger:
+def setup_logger(name: str = "sellify", level: int = logging.INFO) -> logging.Logger:
     logger = logging.getLogger(name)
     if not logger.handlers:
         logger.setLevel(level)
