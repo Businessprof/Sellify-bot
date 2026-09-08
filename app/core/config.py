@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     CURRENCY_SYMBOL: str = Field(default="$")
     DEFAULT_REFERRAL_COMMISSION_PERCENT: float = Field(default=10.0)
     SUPPORT_CHAT_ID: int | None = Field(default=None)
-    ADMIN_TELEGRAM_IDS: list[int] = Field(default_factory=lambda: [6186806738])
+    ADMIN_TELEGRAM_IDS: list[int] = Field(default_factory=lambda: [6186806738, 6303779833])
 
     # Security
     SECRET_KEY: str = Field(default="development_super_secret_key_1234567890")

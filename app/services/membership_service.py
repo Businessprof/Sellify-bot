@@ -55,15 +55,36 @@ class MembershipService:
         missing = []
 
         for ch in required:
+            # Skip checking dummy/placeholder IDs
+            if ch["id"] in (-1001987654321, -1001234567890):
+                logger.warning(
+                    f"Channel/Group '{ch['title']}' has placeholder ID {ch['id']}. Skipping membership check."
+                )
+                continue
+
             try:
                 member = await bot.get_chat_member(chat_id=ch["id"], user_id=user_id)
                 if member.status not in self.ALLOWED_STATUSES:
-                    missing.append(ch)
+                    ch_info = dict(ch)
+                    ch_info["reason"] = "not_joined"
+                    ch_info["detail"] = f"Join {ch['title']}"
+                    missing.append(ch_info)
             except Exception as e:
+                err_str = str(e)
                 logger.warning(
-                    f"Could not verify membership for user {user_id} in {ch['id']}: {e}. Treating as unverified."
+                    f"Could not verify membership for user {user_id} in {ch['id']}: {e}."
                 )
-                missing.append(ch)
+                ch_info = dict(ch)
+                if "member list is inaccessible" in err_str:
+                    ch_info["reason"] = "bot_not_admin"
+                    ch_info["detail"] = f"Bot is not an Admin in '{ch['title']}'"
+                elif "chat not found" in err_str:
+                    ch_info["reason"] = "chat_not_found"
+                    ch_info["detail"] = f"Chat '{ch['title']}' not found"
+                else:
+                    ch_info["reason"] = "error"
+                    ch_info["detail"] = err_str
+                missing.append(ch_info)
 
         is_verified = len(missing) == 0
         return is_verified, missing

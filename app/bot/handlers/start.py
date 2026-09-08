@@ -1,11 +1,13 @@
 from decimal import Decimal
 from aiogram import Bot, F, Router
-from aiogram.filters import CommandStart
-from aiogram.types import CallbackQuery, Message
+from aiogram.filters import Command, CommandStart
+from aiogram.types import CallbackQuery, ChatMemberUpdated, Message
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.database.models.user import User
+from app.core.logger import logger
+from app.database.models.user import MembershipChannel, User
 from app.database.repositories.user_repo import UserRepository
 from app.services.membership_service import MembershipService
 from app.services.referral_service import ReferralService
@@ -76,6 +78,25 @@ async def handle_verify_membership(callback: CallbackQuery, bot: Bot, session: A
     is_verified, missing_channels = await membership_service.verify_user_membership(bot, callback.from_user.id)
 
     if not is_verified:
+        # Admin diagnostic bypass
+        if callback.from_user.id in settings.ADMIN_TELEGRAM_IDS:
+            admin_reasons = [ch.get("detail", ch.get("title")) for ch in missing_channels]
+            notice = "⚠️ Admin Notice:\n" + "\n".join(f"• {r}" for r in admin_reasons) + "\n\n(Bypassing gate for Administrator)"
+            await callback.answer(notice[:200], show_alert=True)
+            if callback.message:
+                try:
+                    await callback.message.delete()
+                except Exception:
+                    pass
+                await show_dashboard(callback.message, session, db_user)
+            return
+
+        setup_errors = [ch.get("detail") for ch in missing_channels if ch.get("reason") in ("bot_not_admin", "chat_not_found")]
+        if setup_errors:
+            alert = "⚠️ Bot Setup Notice:\n" + "\n".join(f"• {e}" for e in setup_errors)
+            await callback.answer(alert[:200], show_alert=True)
+            return
+
         await callback.answer("❌ You have not joined all required channels/groups yet!", show_alert=True)
         return
 
@@ -86,6 +107,41 @@ async def handle_verify_membership(callback: CallbackQuery, bot: Bot, session: A
         except Exception:
             pass
         await show_dashboard(callback.message, session, db_user)
+
+
+@router.message(Command("id", "chatid"))
+async def handle_get_id(message: Message, session: AsyncSession):
+    chat = message.chat
+    is_admin = message.from_user.id in settings.ADMIN_TELEGRAM_IDS
+    text = (
+        f"📌 <b>Chat Details:</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"🏷️ <b>Title:</b> {chat.title or chat.first_name}\n"
+        f"🆔 <b>Chat ID:</b> <code>{chat.id}</code>\n"
+        f"📂 <b>Type:</b> <code>{chat.type}</code>\n"
+    )
+    if chat.type in ("group", "supergroup") and is_admin:
+        await session.execute(
+            update(MembershipChannel)
+            .where(MembershipChannel.title.like("%Community Group%"))
+            .values(channel_id=chat.id)
+        )
+        await session.commit()
+        text += "\n✅ <i>This group is now registered as the Sellify Community Group!</i>"
+    await message.reply(text, parse_mode="HTML")
+
+
+@router.my_chat_member()
+async def on_bot_chat_member_updated(event: ChatMemberUpdated, session: AsyncSession):
+    chat = event.chat
+    if chat.type in ("group", "supergroup"):
+        await session.execute(
+            update(MembershipChannel)
+            .where(MembershipChannel.title.like("%Community Group%"))
+            .values(channel_id=chat.id)
+        )
+        await session.commit()
+        logger.info(f"Bot added to group '{chat.title}' ({chat.id}). Auto-registered as Sellify Community Group in DB.")
 
 
 async def show_dashboard(message: Message, session: AsyncSession, user: User):
