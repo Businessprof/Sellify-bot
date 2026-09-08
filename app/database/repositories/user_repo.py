@@ -120,3 +120,8 @@ class UserRepository(BaseRepository[User]):
         res = await self.session.execute(query)
         val = res.scalar() or Decimal("0.00")
         return Decimal(str(val))
+
+    async def count_all_users(self) -> int:
+        """Count total registered bot users."""
+        res = await self.session.execute(select(func.count(User.id)))
+        return res.scalar() or 0

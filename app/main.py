@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response
 from aiogram.types import Update
 
+from app.api.admin_web import router as admin_web_router
 from app.bot.bot_instance import create_bot, create_dispatcher
 from app.core.config import settings
 from app.core.logger import logger
@@ -40,6 +41,9 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+# Mount Web Admin Panel
+app.include_router(admin_web_router)
 
 
 @app.get("/health")

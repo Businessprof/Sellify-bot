@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Orders Management | Qamify Admin{% endblock %}
+{% block page_title %}Customer Orders & Delivery Records{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+  <div class="glass-card rounded-2xl p-6 shadow-xl space-y-4">
+    <div class="flex items-center justify-between">
+      <h2 class="text-base font-bold text-white flex items-center gap-2">
+        <i class="fa-solid fa-receipt text-slate-400"></i> All Customer Transactions
+      </h2>
+      <span class="text-xs text-slate-400">Sorted by most recent</span>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm text-slate-300">
+        <thead class="text-xs uppercase bg-slate-800/60 text-slate-400 font-semibold border-b border-slate-700/60">
+          <tr>
+            <th class="px-4 py-3">Order Number</th>
+            <th class="px-4 py-3">Customer ID</th>
+            <th class="px-4 py-3">Total Amount</th>
+            <th class="px-4 py-3">Payment Method</th>
+            <th class="px-4 py-3">Status</th>
+            <th class="px-4 py-3">Date</th>
+            <th class="px-4 py-3">Delivered Payload</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800/60">
+          {% if orders %}
+            {% for o in orders %}
+              <tr class="hover:bg-slate-800/30 transition text-xs">
+                <td class="px-4 py-3.5 font-mono text-red-400 font-bold">{{ o.order_number }}</td>
+                <td class="px-4 py-3.5 font-mono text-slate-300">
+                  {{ o.user.first_name if o.user else o.user_id }}
+                  <span class="text-slate-500 font-normal">({{ o.user_id }})</span>
+                </td>
+                <td class="px-4 py-3.5 font-bold text-white font-mono">${{ "%.2f"|format(o.total_amount) }}</td>
+                <td class="px-4 py-3.5 font-mono text-[11px] text-slate-400">{{ o.payment_method.value }}</td>
+                <td class="px-4 py-3.5">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    {{ o.status.value }}
+                  </span>
+                </td>
+                <td class="px-4 py-3.5 text-slate-400">{{ o.created_at.strftime('%Y-%m-%d %H:%M') if o.created_at else 'N/A' }}</td>
+                <td class="px-4 py-3.5 font-mono text-slate-300 max-w-sm truncate" title="{{ o.delivery_content }}">
+                  {{ o.delivery_content or 'None' }}
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="7" class="px-4 py-8 text-center text-slate-500 italic">
+                No orders recorded yet.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

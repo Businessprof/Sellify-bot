@@ -67,3 +67,32 @@ class OrderRepository(BaseRepository[Order]):
         )
         res = await self.session.execute(query)
         return list(res.scalars().all())
+
+    async def get_recent_orders(self, limit: int = 20) -> list[Order]:
+        """Fetch recent completed or active orders for admin dashboard."""
+        query = (
+            select(Order)
+            .order_by(Order.created_at.desc())
+            .limit(limit)
+            .options(selectinload(Order.items), selectinload(Order.user))
+        )
+        res = await self.session.execute(query)
+        return list(res.scalars().all())
+
+    async def get_overall_metrics(self) -> dict:
+        """Fetch total orders and total revenue for completed orders."""
+        from sqlalchemy import func
+        count_q = select(func.count(Order.id))
+        count_res = await self.session.execute(count_q)
+        total_orders = count_res.scalar() or 0
+
+        rev_q = select(func.coalesce(func.sum(Order.total_amount), Decimal("0.00"))).where(
+            Order.status == OrderStatus.COMPLETED
+        )
+        rev_res = await self.session.execute(rev_q)
+        total_revenue = rev_res.scalar() or Decimal("0.00")
+
+        return {
+            "total_orders": total_orders,
+            "total_revenue": Decimal(str(total_revenue)),
+        }

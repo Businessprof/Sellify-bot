@@ -2,7 +2,13 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
-from app.bot.handlers import menu_router, start_router
+from app.bot.handlers import (
+    admin_router,
+    menu_router,
+    shop_router,
+    start_router,
+    wallet_payment_router,
+)
 from app.bot.middlewares.db_session import DatabaseSessionMiddleware
 from app.bot.middlewares.user_tracker import UserTrackerMiddleware
 from app.core.config import settings
@@ -31,5 +37,6 @@ def create_dispatcher() -> Dispatcher:
     dp.include_router(menu_router)
     dp.include_router(shop_router)
     dp.include_router(wallet_payment_router)
+    dp.include_router(admin_router)
 
     return dp

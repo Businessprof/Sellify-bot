@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Qamify Admin{% endblock %}
+{% block page_title %}Store Analytics & KPI Overview{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+  <!-- KPI Metric Cards Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <!-- Revenue -->
+    <div class="glass-card rounded-2xl p-6 shadow-xl relative overflow-hidden">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Revenue</p>
+          <h3 class="text-3xl font-black text-white mt-2">${{ "%.2f"|format(metrics.total_revenue) }}</h3>
+          <p class="text-xs text-emerald-400 mt-2 font-medium flex items-center gap-1">
+            <i class="fa-solid fa-arrow-trend-up"></i> Completed Orders
+          </p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-sack-dollar"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Orders -->
+    <div class="glass-card rounded-2xl p-6 shadow-xl relative overflow-hidden">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Orders</p>
+          <h3 class="text-3xl font-black text-white mt-2">{{ metrics.total_orders }}</h3>
+          <p class="text-xs text-blue-400 mt-2 font-medium">All Time Processed</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-cart-shopping"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users -->
+    <div class="glass-card rounded-2xl p-6 shadow-xl relative overflow-hidden">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Registered Users</p>
+          <h3 class="text-3xl font-black text-white mt-2">{{ total_users }}</h3>
+          <p class="text-xs text-purple-400 mt-2 font-medium">Active Telegram Accounts</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-users"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Available Stock -->
+    <div class="glass-card rounded-2xl p-6 shadow-xl relative overflow-hidden">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Stock In Hand</p>
+          <h3 class="text-3xl font-black text-white mt-2">{{ total_stock }}</h3>
+          <p class="text-xs text-amber-400 mt-2 font-medium">Available for Instant Buy</p>
+        </div>
+        <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center text-xl">
+          <i class="fa-solid fa-box-archive"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Orders Table -->
+  <div class="glass-card rounded-2xl p-6 shadow-xl space-y-4">
+    <div class="flex items-center justify-between">
+      <h2 class="text-lg font-bold text-white flex items-center gap-2">
+        <i class="fa-solid fa-clock-rotate-left text-slate-400"></i> Recent Customer Orders
+      </h2>
+      <a href="/admin/orders" class="text-xs font-semibold text-red-400 hover:text-red-300">View All →</a>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm text-slate-300">
+        <thead class="text-xs uppercase bg-slate-800/60 text-slate-400 font-semibold border-b border-slate-700/60">
+          <tr>
+            <th class="px-4 py-3">Order Number</th>
+            <th class="px-4 py-3">Customer ID</th>
+            <th class="px-4 py-3">Amount</th>
+            <th class="px-4 py-3">Date</th>
+            <th class="px-4 py-3">Status</th>
+            <th class="px-4 py-3">Delivery Content</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800/60">
+          {% if recent_orders %}
+            {% for order in recent_orders %}
+              <tr class="hover:bg-slate-800/30 transition">
+                <td class="px-4 py-3.5 font-mono text-xs text-red-400 font-semibold">{{ order.order_number }}</td>
+                <td class="px-4 py-3.5 font-mono text-xs text-slate-300">{{ order.user_id }}</td>
+                <td class="px-4 py-3.5 font-bold text-white">${{ "%.2f"|format(order.total_amount) }}</td>
+                <td class="px-4 py-3.5 text-xs text-slate-400">{{ order.created_at.strftime('%b %d, %H:%M') if order.created_at else 'N/A' }}</td>
+                <td class="px-4 py-3.5">
+                  <span class="px-2.5 py-1 text-[11px] font-bold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    {{ order.status.value }}
+                  </span>
+                </td>
+                <td class="px-4 py-3.5 text-xs font-mono text-slate-400 max-w-xs truncate" title="{{ order.delivery_content }}">
+                  {{ order.delivery_content or '—' }}
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="6" class="px-4 py-8 text-center text-slate-500 italic">
+                No orders recorded yet. Make a purchase via Telegram bot to see it live here!
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

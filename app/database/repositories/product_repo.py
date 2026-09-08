@@ -58,3 +58,66 @@ class ProductRepository(BaseRepository[Product]):
         )
         res = await self.session.execute(query)
         return res.scalar() or 0
+
+    async def get_all_products_with_variants(self) -> list[Product]:
+        query = select(Product).options(selectinload(Product.variants), selectinload(Product.category)).order_by(Product.name)
+        res = await self.session.execute(query)
+        return list(res.scalars().all())
+
+    async def create_product_with_variant(
+        self,
+        category_id: int,
+        name: str,
+        slug: str,
+        description: str,
+        delivery_type: DeliveryType,
+        variant_name: str,
+        price: Decimal,
+        is_trial_or_email: bool = False,
+    ) -> tuple[Product, ProductVariant]:
+        product = Product(
+            category_id=category_id,
+            name=name,
+            slug=slug,
+            description=description,
+            delivery_type=delivery_type,
+            is_active=True,
+            is_trial_or_email=is_trial_or_email,
+        )
+        self.session.add(product)
+        await self.session.flush()
+
+        variant = ProductVariant(
+            product_id=product.id,
+            name=variant_name,
+            price=price,
+            display_order=0,
+            is_active=True,
+        )
+        self.session.add(variant)
+        await self.session.flush()
+        return product, variant
+
+    async def delete_product(self, product_id: int) -> bool:
+        product = await self.session.get(Product, product_id)
+        if not product:
+            return False
+        await self.session.delete(product)
+        await self.session.flush()
+        return True
+
+    async def toggle_product_status(self, product_id: int) -> bool | None:
+        product = await self.session.get(Product, product_id)
+        if not product:
+            return None
+        product.is_active = not product.is_active
+        await self.session.flush()
+        return product.is_active
+
+    async def update_variant_price(self, variant_id: int, new_price: Decimal) -> bool:
+        variant = await self.session.get(ProductVariant, variant_id)
+        if not variant:
+            return False
+        variant.price = new_price
+        await self.session.flush()
+        return True

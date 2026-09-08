@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Inventory & Stock | Qamify Admin{% endblock %}
+{% block page_title %}Inventory & Stock Management{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+  <!-- Bulk Restock Form Card -->
+  <div class="glass-card rounded-2xl p-6 shadow-xl space-y-6">
+    <div>
+      <h2 class="text-lg font-bold text-white flex items-center gap-2">
+        <i class="fa-solid fa-cloud-arrow-up text-red-500"></i> Bulk Restock Digital Goods
+      </h2>
+      <p class="text-xs text-slate-400 mt-1">
+        Select a product variant below, paste your serial keys or account credentials (one item per line), and import them instantly.
+      </p>
+    </div>
+
+    <form method="POST" action="/admin/inventory/bulk-add" class="space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1.5">Target Product Variant</label>
+          <select name="variant_id" required class="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-red-500 text-sm">
+            {% for v in variants %}
+              <option value="{{ v.id }}" {% if selected_variant_id == v.id %}selected{% endif %}>
+                {{ v.product.name }} ({{ v.name }}) — ${{ "%.2f"|format(v.price) }} [📦 {{ v.stock }} in stock]
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1.5">Quick Filter</label>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400">Total in stock:</span>
+            <span class="text-xs font-bold text-emerald-400 font-mono bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg">
+              {{ total_stock }} available
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 uppercase mb-1.5">
+          Paste Stock Items (One item per line)
+        </label>
+        <textarea name="payloads_text" required rows="6" placeholder="KEY-XXXX-1234-ABCD&#10;KEY-YYYY-5678-EFGH&#10;user@mail.com:password123" class="w-full bg-slate-800/90 border border-slate-700 rounded-xl p-3.5 text-white font-mono text-xs focus:outline-none focus:border-red-500 leading-relaxed"></textarea>
+      </div>
+
+      <div class="flex justify-end">
+        <button type="submit" class="px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm transition shadow-lg shadow-red-600/30 flex items-center gap-2">
+          <i class="fa-solid fa-plus-circle"></i> Import Stock Items
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Existing Stock Items Table -->
+  <div class="glass-card rounded-2xl p-6 shadow-xl space-y-4">
+    <div class="flex items-center justify-between">
+      <h3 class="text-base font-bold text-white flex items-center gap-2">
+        <i class="fa-solid fa-list-check text-slate-400"></i> Stock Records
+      </h3>
+      <div class="flex items-center gap-2 text-xs">
+        <span class="text-slate-400">Showing last 50 entries</span>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm text-slate-300">
+        <thead class="text-xs uppercase bg-slate-800/60 text-slate-400 font-semibold border-b border-slate-700/60">
+          <tr>
+            <th class="px-4 py-3">Item ID</th>
+            <th class="px-4 py-3">Variant</th>
+            <th class="px-4 py-3">Payload (Masked)</th>
+            <th class="px-4 py-3">Status</th>
+            <th class="px-4 py-3">Created</th>
+            <th class="px-4 py-3 text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800/60">
+          {% if stock_items %}
+            {% for item in stock_items %}
+              <tr class="hover:bg-slate-800/30 transition font-mono text-xs">
+                <td class="px-4 py-3 text-slate-400 font-mono">{{ item.id[:8] }}...</td>
+                <td class="px-4 py-3 text-slate-200 font-sans font-medium">
+                  {{ item.variant.product.name if item.variant else '—' }}
+                </td>
+                <td class="px-4 py-3 text-slate-300 font-mono max-w-sm truncate">
+                  {{ item.payload }}
+                </td>
+                <td class="px-4 py-3">
+                  {% if item.status.value == 'AVAILABLE' %}
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">AVAILABLE</span>
+                  {% elif item.status.value == 'SOLD' %}
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">SOLD</span>
+                  {% else %}
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-500/10 text-slate-400">{{ item.status.value }}</span>
+                  {% endif %}
+                </td>
+                <td class="px-4 py-3 text-slate-400 font-sans text-xs">
+                  {{ item.created_at.strftime('%m/%d %H:%M') if item.created_at else 'N/A' }}
+                </td>
+                <td class="px-4 py-3 text-right font-sans">
+                  <form method="POST" action="/admin/inventory/{{ item.id }}/delete" onsubmit="return confirm('Delete this stock item?');" class="inline">
+                    <button type="submit" class="text-rose-400 hover:text-rose-300 text-xs font-semibold px-2 py-1 rounded bg-rose-500/10 hover:bg-rose-500/20 transition">
+                      Delete
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="6" class="px-4 py-8 text-center text-slate-500 italic font-sans">
+                No inventory items found. Use the bulk form above to add stock!
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
