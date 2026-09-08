@@ -20,11 +20,15 @@ async def lifespan(app: FastAPI):
 
     # In production with WEBHOOK_URL configured
     if settings.WEBHOOK_URL:
+        webhook_target = settings.WEBHOOK_URL.rstrip("/")
+        if not webhook_target.endswith("/api/v1/webhooks/telegram"):
+            webhook_target = f"{webhook_target}/api/v1/webhooks/telegram"
+
         webhook_info = await bot.get_webhook_info()
-        if webhook_info.url != settings.WEBHOOK_URL:
-            logger.info(f"Setting Telegram webhook to: {settings.WEBHOOK_URL}")
+        if webhook_info.url != webhook_target:
+            logger.info(f"Setting Telegram webhook to: {webhook_target}")
             await bot.set_webhook(
-                url=settings.WEBHOOK_URL,
+                url=webhook_target,
                 secret_token=settings.WEBHOOK_SECRET,
                 drop_pending_updates=True,
             )
