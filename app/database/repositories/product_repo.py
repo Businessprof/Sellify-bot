@@ -1,8 +1,11 @@
+from __future__ import annotations
+
+from decimal import Decimal
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.constants import InventoryStatus
+from app.core.constants import DeliveryType, InventoryStatus
 from app.database.models.inventory import InventoryItem
 from app.database.models.product import Product, ProductCategory, ProductVariant
 from app.database.repositories.base import BaseRepository
