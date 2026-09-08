@@ -90,9 +90,12 @@ async def telegram_webhook(request: Request) -> Response:
         if secret != settings.WEBHOOK_SECRET:
             return Response(content="Forbidden", status_code=403)
 
-    data = await request.json()
-    update = Update.model_validate(data, context={"bot": bot})
-    await dp.feed_update(bot, update)
+    try:
+        data = await request.json()
+        update = Update.model_validate(data, context={"bot": bot})
+        await dp.feed_update(bot, update)
+    except Exception as e:
+        logger.error(f"Error handling Telegram webhook update: {e}", exc_info=True)
     return Response(status_code=200)
 
 

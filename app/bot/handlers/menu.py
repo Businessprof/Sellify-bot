@@ -3,6 +3,7 @@ from aiogram import F, Router
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.bot.handlers.start import show_dashboard
 from app.bot.keyboards.common import get_back_keyboard
@@ -32,10 +33,14 @@ async def handle_back_to_menu(callback: CallbackQuery, session: AsyncSession, db
 
 @router.callback_query(F.data == "nav_shop")
 async def handle_nav_shop(callback: CallbackQuery, session: AsyncSession):
-    await callback.answer()
+    try:
+        await callback.answer()
+    except Exception:
+        pass
     product_repo = ProductRepository(session)
     variants = (await session.execute(
         select(ProductVariant)
+        .options(selectinload(ProductVariant.product))
         .where(ProductVariant.is_active == True)  # noqa: E712
         .order_by(ProductVariant.display_order, ProductVariant.id)
     )).scalars().all()
@@ -48,10 +53,14 @@ async def handle_nav_shop(callback: CallbackQuery, session: AsyncSession):
         stock = await product_repo.get_variant_stock_count(v.id)
         if stock > 0:
             in_stock_count += 1
-        label = f"{v.product.name} | ${v.price:.2f} | 📦 {stock}"
+        prod_title = v.product.name if v.product else v.name
+        label = f"{prod_title} | ${v.price:.2f} | 📦 {stock}"
         buttons.append([InlineKeyboardButton(text=label, callback_data=f"buy_variant_{v.id}")])
 
-    buttons.append([InlineKeyboardButton(text="🔄 Refresh", callback_data="nav_shop")])
+    if not buttons:
+        buttons.append([InlineKeyboardButton(text="🔄 Refresh", callback_data="nav_shop")])
+    else:
+        buttons.append([InlineKeyboardButton(text="🔄 Refresh", callback_data="nav_shop")])
     buttons.append([InlineKeyboardButton(text="🏠 Back to Home", callback_data="nav_main_menu")])
     kb = InlineKeyboardMarkup(inline_keyboard=buttons)
 
